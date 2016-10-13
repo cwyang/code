@@ -1,7 +1,7 @@
 -- My Standard Main
 
 {-# LANGUAGE BangPatterns, OverloadedStrings, QuasiQuotes, InstanceSigs #-}
-{-# GeneralizedNewtypeDeriving #-} -- Unsafe Extension
+{-# LANGUAGE GeneralizedNewtypeDeriving #-} -- Unsafe Extension
 {-# OPTIONS_GHC -O2 #-}
 
 import qualified Data.ByteString.Char8 as B
@@ -10,7 +10,7 @@ import Data.List
 import Data.Maybe
 import Debug.Trace
 import Text.Printf
-
+       
 calc :: [Int] -> String
 calc _ = "Hi"
 main = do
@@ -18,12 +18,14 @@ main = do
   l <- rl
   putStrLn . calc $ l
   where rl = fmap (map (fst . fromJust . B.readInt) . B.words) B.getLine
+        j = 1
 
 -- rdragon's intReader
+{-
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
 main :: IO ()
-main = do
+main = d
   rd <- intReader
   [n] <- rd 1
   
@@ -34,3 +36,4 @@ intReader = do
     xs <- readIORef ws
     writeIORef ws (drop n xs)
     return (take n . map (fst . fromJust . B.readInt) $ xs)
+-}

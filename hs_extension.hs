@@ -5,12 +5,16 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns #-}
+-- maybe default. {-# LANGUAGE TypeSynonymInstances #-}
+-- deprecated from 7.10 {-# LANGUAGE OverlappingInstances #-}
 
 import qualified Data.Map as Map
 import GHC.Exts (IsList(..))
 import Control.Monad
 import Control.Applicative
-
+import qualified Data.Text as T
 -- Rose Tree
 data Tree a = Node a [Tree a]
   deriving (Show, Functor, Foldable, Traversable)
@@ -49,8 +53,50 @@ instance MyClass (Maybe Int)
 
 -- Without flexible contexts, all contexts must be type variable. The
 -- following would be legal.
-instance (MyClass a) => MyClass [a]
+instance (MyClass a) => MyClass [Maybe a]
 
 -- With flexible contexts, typeclass contexts can be arbitrary nested types. The
 -- following would be forbidden without it.
 instance (MyClass (Maybe a)) => MyClass (Either a b)
+
+--
+class MyClass1 a b where
+    fn :: (a,b)
+
+instance {-# OVERLAPPING #-} MyClass1 Int b where
+  fn = error "b"
+
+instance {-# OVERLAPPING #-} MyClass1 a Int where
+  fn = error "a"
+
+instance {-# OVERLAPPING #-} MyClass1 Int Int where
+  fn = error "c"
+
+example :: (Int, Int)
+example = fn
+
+--
+type IntList = [Int]
+
+-- Without type synonym instances, we're forced to manually expand out type
+-- synonyms in the typeclass head.
+--instance MyClass [Int]
+
+-- With it GHC will do this for us automatically. Type synonyms still need to
+-- be fully applied.
+instance MyClass IntList
+
+--
+sum :: Num a => [a] -> a
+sum = go 0
+  where
+    go !acc (x:xs) = go (acc + x) xs
+    go  acc []    = acc
+--
+
+{-# LANGUAGE StrictData #-}
+
+data Employee = Employee
+                { name :: T.Text
+                , age :: Int
+                }
