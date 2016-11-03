@@ -28,13 +28,21 @@ unite :: (UnionFind s) -> Int -> Int -> ST s ()
 unite uf p q = do
   i <- root uf p
   j <- root uf q
-  szi <- readArray (szs uf) i
-  szj <- readArray (szs uf) j
-  if (szi < szj)
-    then do writeArray (ids uf) i j
-            writeArray (szs uf) j (szi + szj)
-    else do writeArray (ids uf) j i
-            writeArray (szs uf) i (szj + szi)
+  when (i /= j) $ do
+    szi <- readArray (szs uf) i
+    szj <- readArray (szs uf) j
+    if (szi < szj)
+      then do writeArray (ids uf) i j
+              writeArray (szs uf) j (szi + szj)
+      else do writeArray (ids uf) j i
+              writeArray (szs uf) i (szj + szi)
+
+-- sizes of corresponding elements, for hackerrank
+getSize :: (UnionFind s) -> ST s [Int]
+getSize uf = do
+  a <- getAssocs . ids $ uf
+  b <- getElems . szs $ uf
+  return . map snd . filter (\((k,v),_) -> k == v) $ zip a b
 
 run = print $ runST $ do
   uf <- newUnionFind 10
@@ -45,7 +53,8 @@ run = print $ runST $ do
   unite uf 5 6 -- {0, 8}, 1, {2, 3, 4, 9}, {5, 6}, 7
   unite uf 5 9 -- {0, 8}, 1, {2, 3, 4, 5, 6, 9}, 7
   unite uf 7 3 -- {0, 8}, 1, {2, 3, 4, 5, 6, 7, 9}
-  find uf 1 2 -- False
+--  find uf 1 2 -- False
+  getSize uf
 
 -- Segment Tree.. ugly :-(
 data SegmentTree s a = SegmentTree { size :: Int
@@ -165,7 +174,7 @@ runFen = do
   let query = [(1,1), (1,2), (1,6), (1,10), (3,6)]
   r1 <- mapM (uncurry $ queryFenwickTree ft) query
   updateFenwickTree ft 5 2 
-  r2 <- queryFenwickTree ft 1 10i
+  r2 <- queryFenwickTree ft 1 10
   print (r1,r2)
 
   

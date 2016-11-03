@@ -4,11 +4,24 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-} -- Unsafe Extension
 {-# OPTIONS_GHC -O2 #-}
 
-import qualified Data.ByteString.Char8 as B
-import qualified Data.IntMap.Strict as M
-import Data.List
+import Prelude
+import Control.Applicative
+import Control.Lens
 import Data.Maybe
+import qualified Data.ByteString.Char8 as B
+import qualified Data.Array as A
+import qualified Data.Sequence as SQ
+import qualified Data.Set as S
+import qualified Data.Map as M
+import Data.Sequence ((><),(<|),(|>),ViewL((:<)),ViewR ((:>)))
+import Data.Array ((!),(//))
+import Data.List
+import Data.List.Split
+import Data.Ord
 import Debug.Trace
+
+--import qualified Data.IntMap.Strict as M
+import Data.Maybe
 import Text.Printf
        
 calc :: [Int] -> String
