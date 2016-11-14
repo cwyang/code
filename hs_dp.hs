@@ -282,3 +282,78 @@ addWay n k = sum [ addWay (n-x) (k-1) | x <- [0..n] ]
 -- determined by the length of the stick to be cut. Your task is to find a cutting
 -- sequence so that the overall cost is minimized.
 -- ex: l=100,n=3, optimal answer is 200
+
+-- String Edit Distance
+
+data Action = None | Add | Remove | Modify deriving Show
+type Distance = Int
+script :: Eq a => (Action -> Distance) -> [a] -> [a] -> [Action]
+script cost a b = reverse . snd $ d m n
+  where (m,n) = (length a, length b)
+        a' = listArray (1,m) a
+        b' = listArray (1,n) b
+
+        d 0 0 = (0, [])
+        d i 0 = go (i-1) 0 Remove
+        d 0 j = go 0 (j-1) Add
+        d i j
+          | a'!i == b'!j = go (i-1) (j-1)  None
+          | otherwise = minimumBy (comparing fst)
+                        [ go (i-1) j Remove
+                        , go i (j-1) Add
+                        , go (i-1) (j-1) Modify
+                        ]
+        go i j action = let (score, actions) = ds!(i,j)
+                        in (score+cost action, action: actions)
+        ds = listArray bounds [d i j | (i,j) <- range bounds]
+        bounds = ((0,0), (m,n))
+cost :: Action -> Distance
+cost None = 0
+cost _    = 1
+
+-- Longest Common Subsequence
+lcs, lcsDP :: Eq a => [a] -> [a] -> [a]
+lcs a b = reverse $ d m n
+  where (m,n)   = (length a, length b)
+        (a',b') = (listArray (1,m) a, listArray (1,n) b)
+        d _ 0 = []
+        d 0 _ = []
+        d i j | a'!i == b'!j = (a'!i) : d (i-1) (j-1)
+              | otherwise = maximumBy (comparing length)
+                            [ d (i-1) j
+                            , d i (j-1)
+                            , d (i-1) (j-1)]
+lcsDP a b = reverse $ d m n
+  where (m,n)   = (length a, length b)
+        (a',b') = (listArray (1,m) a, listArray (1,n) b)
+        d _ 0 = []
+        d 0 _ = []
+        d i j | a'!i == b'!j = (a'!i) : d (i-1) (j-1)
+              | otherwise = maximumBy (comparing length)
+                            [ ds ! (i-1,j)
+                            , ds ! (i,j-1)
+                            , ds ! (i-1,j-1)]
+        ds = listArray bounds [d i j | (i,j) <- range bounds]
+        bounds = ((0,0), (m,n))
+
+-- Longest Palindrome
+-- Given a string of up to n = 1000 characters, determine the length
+-- of the longest palindrome that you can make from it by deleting
+-- zero or more characters
+
+longestPalindromeDP :: Eq a => [a] -> [a]
+longestPalindromeDP xs = d 1 m
+  where m = length xs
+        xs' = listArray (1,m) xs
+        d l r | l   == r = [xs'!l]                      -- odd length pal
+              | l+1 == r = case xs'!l == xs'!r of -- even length pal
+                           True  -> [xs'!l,xs'!r]
+                           False -> [xs'!l] 
+              | xs'!l == xs'!r = xs'!l : ds! ((l+1),(r-1)) ++ [xs'!r]
+              | otherwise      = let (u,v) = ((ds! (l,(r-1))), (ds! ((l+1), r)))
+                                 in case length u >= length v of
+                                    True  -> u
+                                    False -> v
+        ds = listArray bounds [d i j | (i,j) <- range bounds]
+        bounds = ((1,1), (m,m))
+

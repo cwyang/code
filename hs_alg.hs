@@ -7,6 +7,8 @@ import Data.Array.ST
 import Data.Array.IO
 import Data.Array((!), listArray, Array)
 import Data.Array.Unboxed(UArray)
+import Test.QuickCheck hiding ((.&.))
+import Test.QuickCheck.Modifiers (NonEmptyList (..))
 import Debug.Trace
 
 data UnionFind s = UnionFind { ids:: STUArray s Int Int
@@ -177,4 +179,22 @@ runFen = do
   r2 <- queryFenwickTree ft 1 10
   print (r1,r2)
 
-  
+-- Brent's Cycle Finding
+
+brent :: Eq a => [a] -> (Int, Int)
+brent xs = (lambda, mu)
+  where lambda = findLambda 1 1 (head xs) (tail xs)
+        mu     = let hare = drop lambda xs
+                 in length . takeWhile (uncurry (/=)) $ zip xs hare
+        findLambda :: Eq a => Int -> Int -> a -> [a] -> Int
+        findLambda power lambda tortoise (hare:xs)
+          | tortoise == hare      = lambda
+          | power == lambda       -- time to start a new power of two
+            = findLambda (power*2) 1 hare xs
+          | otherwise             = findLambda power (lambda+1) tortoise xs
+
+brentTest = do
+  quickCheck (test1)
+  where 
+    test1 :: (Positive Int) -> (Positive Int) -> Bool
+    test1 (Positive l) (Positive m) = brent ([1..m] ++ cycle [m+1..l+m]) == (l,m)
