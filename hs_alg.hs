@@ -1,11 +1,16 @@
 -- UnionFind by kyseo
+import Data.List
+import Data.Ord
+import Data.Char
+import Data.Function
 import Data.Bits
+import qualified Data.Vector as V
 import Control.Applicative
 import Control.Monad.ST
 import Control.Monad
 import Data.Array.ST
 import Data.Array.IO
-import Data.Array((!), listArray, Array)
+import Data.Array((!), listArray, Array, elems, accumArray)
 import Data.Array.Unboxed(UArray)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Modifiers (NonEmptyList (..))
@@ -198,3 +203,76 @@ brentTest = do
   where 
     test1 :: (Positive Int) -> (Positive Int) -> Bool
     test1 (Positive l) (Positive m) = brent ([1..m] ++ cycle [m+1..l+m]) == (l,m)
+
+-- Suffix Array
+
+-- | O(N^2*log N)
+makeNaiveSA :: Ord a => [a] -> [Int] -- Array Int (Int,[a])
+makeNaiveSA xs = tail . map fst {-. listArray (0,n)-} . sortBy (comparing snd) . zip [0..] . tails $ xs
+  where n = length xs
+-- | O(N * (log N)^2) try -- CMU 15-210 Lecture 25 (Spring 2012)
+makeSA :: Ord a => [a] -> [Int] 
+makeSA xs = map fst . sortBy (comparing snd) $ zip [0..] v
+  where len = length xs
+        v = fst $ rank xs len len
+rank :: Ord a => [a] -> Int -> Int -> ([Int],[Int])
+rank xs 1 len = rankBase xs len
+rank xs l len = let half_l = myHalf l
+                    (a,b) = rank xs half_l len 
+                    pairs = zip [0..] $ zip a b
+                    sortedPairs = sortBy (comparing snd) pairs
+{-
+                    sortedPairs = countingSortBy (-1,len) (\(_,(x,_)) -> x)
+                                . countingSortBy (-1,len) (\(_,(_,x)) -> x) $ pairs
+-}
+                    newRank = transform sortedPairs
+                    myHalf n = last . takeWhile (\x -> x < n)  $ iterate (*2) 1
+                in (take len newRank, take len $ drop l newRank)
+
+rankBase :: Ord a => [a] -> Int -> ([Int],[Int])
+rankBase xs len = (take len newRank, take len $ tail newRank)
+  where sortedPairs  = sortBy (comparing snd) $ zip [0..] xs
+        newRank = transform sortedPairs
+        
+transform :: Eq a => [(Int,a)] -> [Int]
+transform xs = (map snd . sortBy (comparing fst) $ v) ++ repeat (-1)
+  where grouped = groupBy ((==) `on` snd) xs
+        v = concat $ zipWith (\xs k -> map (\x -> (fst x,k)) xs) grouped [0..]
+
+countingSortBy :: (Int,Int) -> (a->Int) -> [a] -> [a]
+countingSortBy bnd fn xs = concatMap reverse $ elems arr
+  where arr = accumArray (flip (:)) [] bnd $ zip (map fn xs) xs
+
+testS = last $ countingSortBy (1,maxv) (id) a
+  where maxv = 50000000
+        a = [maxv,maxv-1..1]
+testS1 = last $ sort a
+  where maxv = 50000000
+        a = [maxv,maxv-1..1]
+
+testSA = length $ makeNaiveSA "GATAGACA$"
+testSA1 = length $ makeNaiveSA $ replicate 20000 'G' ++ "GATAGACA$"                            
+testSA2 = length $ makeSA "GATAGACA$"
+testSA3 = length $ makeSA $ replicate 200000 'G' ++ "GATAGACA$"                            
+stringMatch :: String -> String -> Maybe [Int]
+stringMatch src pattern
+  | takeVal (sa V.! low)  /= pattern = Nothing
+  | takeVal (sa V.! high) /= pattern = Just [ sa V.! x | x <- [low..high-1] ]
+  | otherwise               = Just [ sa V.! x | x <- [low..high] ]
+  where n = length src
+        m = length pattern
+        srcVector = V.fromList src
+        sa = V.fromList $ makeSA src
+        takeVal v = V.toList . V.take m $ V.drop v srcVector
+        low = binarySearch 0 (n-1) (<=)
+        high = binarySearch 0 (n-1) (<)
+        binarySearch :: Int -> Int -> (String->String->Bool) -> Int
+        binarySearch l h cmp -- make narrow on l
+          | l == h          = l
+          | pattern `cmp` p = binarySearch l mid cmp
+          | otherwise       = binarySearch (mid+1) h cmp
+          where mid = (l + h) `div` 2
+                p = takeVal (sa V.! mid)
+
+stringMatchTest = stringMatch "parallel" "al"
+          
