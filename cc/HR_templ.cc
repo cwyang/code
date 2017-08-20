@@ -1,3 +1,4 @@
+/*
 #ifdef ssu1
 #define _GLIBCXX_DEBUG
 #endif
@@ -98,5 +99,31 @@ int main(){
   forn(Ti, T){
     solve(Ti);
   }
+  return 0;
+}
+*/
+
+#include<bits/stdc++.h>
+using namespace std;
+int ar[100005]={},dp[100005][2]={};
+int main()
+{
+  int t;
+  cout << (10ULL^18) << endl;
+  cin >> t;
+  while(t--)
+    {
+      int n,i,j;
+      cin >> n;
+      for(i=0; i<n; i++)
+        cin >> ar[i];
+      for(i=0; i<n-1; i++)
+        {
+          //          dp[i+1][0]=max(dp[i][0],dp[i][1]+abs(ar[i]-1));
+                    dp[i+1][0]=dp[i][1]+abs(ar[i]-1);
+          dp[i+1][1]=max(dp[i][0]+abs(ar[i+1]-1),dp[i][1]+abs(ar[i]-ar[i+1]));
+        }
+      cout << max(dp[n-1][0],dp[n-1][1]) << endl;
+    }
   return 0;
 }
